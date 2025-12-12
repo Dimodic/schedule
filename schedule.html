@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Расписание</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #09090b;
+            --surface: rgba(24, 24, 27, 0.7); /* Полупрозрачный фон */
+            --surface-hover: rgba(39, 39, 42, 0.8);
+            --border: rgba(255, 255, 255, 0.1);
+            
+            --primary: #e4e4e7;
+            --secondary: #a1a1aa;
+            
+            --accent: #3b82f6;
+            --success: #10b981;
+
+            --font-ui: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            
+            --glass: blur(12px);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--primary);
+            font-family: var(--font-ui);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            padding-bottom: 80px;
+            /* Статичный, но красивый фон */
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.08), transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.05), transparent 40%);
+        }
+
+        /* --- Анимация мягкого дыхания для Live --- */
+        @keyframes breathe {
+            0% { border-color: rgba(16, 185, 129, 0.4); box-shadow: 0 0 15px rgba(16, 185, 129, 0.05); }
+            50% { border-color: rgba(16, 185, 129, 0.8); box-shadow: 0 0 25px rgba(16, 185, 129, 0.15); }
+            100% { border-color: rgba(16, 185, 129, 0.4); box-shadow: 0 0 15px rgba(16, 185, 129, 0.05); }
+        }
+
+        /* --- Header --- */
+        header {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding: 0 4px;
+        }
+
+        h1 { font-size: 1.25rem; font-weight: 700; color: #fff; letter-spacing: -0.02em; }
+        .clock { 
+            font-family: var(--font-mono); 
+            color: var(--secondary); 
+            font-size: 0.9rem; 
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            padding: 4px 10px;
+            border-radius: 8px;
+        }
+
+        /* --- Main Container --- */
+        .container {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* --- SPOTLIGHT CARD --- */
+        .hero-card {
+            background: var(--surface);
+            backdrop-filter: var(--glass);
+            -webkit-backdrop-filter: var(--glass);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+        }
+
+        /* Интерактивность: Легкий подъем */
+        .hero-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255,255,255,0.2);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+        }
+
+        .hero-card.is-live {
+            animation: breathe 3s infinite ease-in-out; /* Очень медленная анимация */
+        }
+
+        .hero-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--secondary);
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-indicator {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.7rem;
+        }
+        
+        .status-live { background: var(--success); color: #000; }
+        .status-next { background: var(--border); color: var(--secondary); }
+
+        .hero-time {
+            font-family: var(--font-mono);
+            font-size: 1.75rem;
+            font-weight: 500;
+            margin-bottom: 4px;
+            letter-spacing: -0.03em;
+            color: #fff;
+        }
+
+        .hero-date {
+            color: var(--accent);
+            font-size: 0.9rem;
+            margin-bottom: 16px;
+            opacity: 0.9;
+            font-weight: 500;
+        }
+
+        .countdown-active {
+            color: var(--success);
+            font-feature-settings: "tnum";
+            font-variant-numeric: tabular-nums;
+        }
+
+        .hero-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 16px;
+            color: #fff;
+        }
+
+        /* --- Tags --- */
+        .tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; align-items: center; }
+        
+        .tag {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            color: var(--secondary);
+            font-weight: 500;
+            cursor: default;
+            transition: background 0.2s;
+        }
+        
+        .tag:hover { background: rgba(255,255,255,0.08); }
+
+        .tag-type { color: #d4d4d8; }
+        .tag-group { background: #27272a; color: #fff; font-family: var(--font-mono); letter-spacing: -0.02em; border-color: rgba(255,255,255,0.15); }
+
+        /* --- Button --- */
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 14px;
+            background: #27272a;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn:active { transform: scale(0.98); opacity: 0.9; }
+        .btn.disabled { opacity: 0.5; pointer-events: none; filter: grayscale(1); }
+        
+        .btn-primary { 
+            background: var(--accent); 
+            color: #fff; 
+        }
+        .btn-primary:hover {
+            background: #2563eb;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+        }
+
+        /* --- Navigation --- */
+        .tabs-wrapper { width: 100%; }
+
+        .tabs { 
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            width: 100%;
+        }
+
+        .tab-btn {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--border);
+            color: var(--secondary);
+            padding: 12px 0;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+        
+        .tab-btn:hover {
+            background: rgba(255,255,255,0.05);
+            border-color: #52525b;
+            color: #fff;
+        }
+
+        .tab-btn.active {
+            background: #fff;
+            color: #000;
+            border-color: #fff;
+            font-weight: 700;
+            box-shadow: 0 0 15px rgba(255,255,255,0.1);
+        }
+
+        /* --- List --- */
+        .list { display: flex; flex-direction: column; gap: 12px; }
+
+        .item-card {
+            background: var(--surface);
+            backdrop-filter: var(--glass);
+            -webkit-backdrop-filter: var(--glass);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.2s ease;
+            cursor: default;
+        }
+
+        .item-card:hover {
+            background: var(--surface-hover);
+            border-color: rgba(255,255,255,0.2);
+            transform: translateY(-2px); /* Легкий подъем */
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            align-items: flex-start;
+        }
+
+        .item-time {
+            font-family: var(--font-mono);
+            color: var(--secondary);
+            font-size: 0.85rem;
+        }
+
+        .item-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #fff;
+            transition: color 0.2s;
+        }
+        .item-card:hover .item-title { color: #fff; }
+        
+        .item-link {
+            font-size: 0.75rem;
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 700;
+            text-transform: uppercase;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+        .item-link:hover { opacity: 1; text-decoration: underline; }
+
+        .empty-msg {
+            text-align: center;
+            padding: 40px;
+            color: var(--secondary);
+            font-size: 0.9rem;
+            border: 1px dashed var(--border);
+            border-radius: 16px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Расписание</h1>
+        <div class="clock" id="clock">--:--</div>
+    </header>
+
+    <div class="container">
+        
+        <div id="hero-root"></div>
+
+        <div class="tabs-wrapper">
+            <div class="tabs" id="tabs-root"></div>
+        </div>
+
+        <div class="list" id="list-root"></div>
+
+    </div>
+
+    <script>
+        const DATA = [
+            // ПОНЕДЕЛЬНИК (Короткий)
+            {"День": "Понедельник", "Время": "11:10-12:30", "Дисциплина": "Алгебра", "Вид": "Лекция", "Группа": "", "Преподаватель": "Трушин Д.В.", "Ссылка": "https://zoom.us/j/91984195158?pwd=IBaxy0wbNZex0Zb6Qpnzc7Zf16xuDb.1"},
+            {"День": "Понедельник", "Время": "13:00-14:20", "Дисциплина": "Алгебра", "Вид": "Семинар", "Группа": "242", "Преподаватель": "Медведь Н.Ю.", "Ссылка": "https://zoom.us/j/97601354573?pwd=3hJRWdS6h4zALbPGTE6a5FGHNBlTny.1"},
+            
+            // ВТОРНИК
+            {"День": "Вторник", "Время": "11:10-12:30", "Дисциплина": "Теория вероятностей", "Вид": "Лекция", "Группа": "", "Преподаватель": "Промыслов П.В.", "Ссылка": "https://zoom.us/j/96599800869?pwd=D1IXyD3s34mGUInSPWppkwKlO2IeJh.1"},
+            {"День": "Вторник", "Время": "16:20-17:40", "Дисциплина": "Теория вероятностей", "Вид": "Семинар", "Группа": "242", "Преподаватель": "Косолапов И.А.", "Ссылка": "https://zoom.us/j/92122829904?pwd=iV22XAfDJZlyrQihBiDiTwkXeS3GmI.1"},
+            
+            // СРЕДА (Кибербезопасность)
+            {"День": "Среда", "Время": "18:10-19:30", "Дисциплина": "Введение в кибербезопасность", "Вид": "Майнор", "Группа": "", "Преподаватель": "", "Ссылка": ""},
+            {"День": "Среда", "Время": "19:40-21:00", "Дисциплина": "Введение в кибербезопасность", "Вид": "Майнор", "Группа": "", "Преподаватель": "", "Ссылка": ""},
+
+            // ЧЕТВЕРГ (Пустой)
+
+            // ПЯТНИЦА
+            {"День": "Пятница", "Время": "09:30-10:50", "Дисциплина": "Английский язык", "Вид": "Семинар", "Группа": "", "Преподаватель": "Буренкова О.В.", "Ссылка": "https://zoom.us/j/93030685496?pwd=14K3bfbEr5XFbqnFLWRZEvB3sNaEOm.1"},
+            {"День": "Пятница", "Время": "11:10-12:30", "Дисциплина": "Английский язык", "Вид": "Семинар", "Группа": "", "Преподаватель": "Ступакова Л.С.", "Ссылка": "https://zoom.us/j/94338286884?pwd=ej5C8uNlT5dbRWRaPWQ84KzW81K1mY.1"},
+            {"День": "Пятница", "Время": "13:00-14:20", "Дисциплина": "Теория вероятностей", "Вид": "Семинар", "Группа": "241", "Преподаватель": "Юрьева Г.В.", "Ссылка": "https://zoom.us/j/95316561805?pwd=Mr6GSQH5bTQ8rNAfpa43N5xSYqawaJ.1"},
+            {"День": "Пятница", "Время": "16:20-17:40", "Дисциплина": "Алгебра", "Вид": "Семинар", "Группа": "241", "Преподаватель": "Галина Калеева", "Ссылка": "https://zoom.us/j/98502688889?pwd=ygwaGEw3CAWA4KJdRtTg4yryaMrjkO.1"},
+
+            // СУББОТА
+            {"День": "Суббота", "Время": "14:40-16:00", "Дисциплина": "Математический анализ 2", "Вид": "Лекция", "Группа": "", "Преподаватель": "Мажуга А.М.", "Ссылка": "https://zoom.us/j/95204603107?pwd=nYtDcs3QktpePe8V8Rfeuu505AWkUT.1"},
+            {"День": "Суббота", "Время": "16:20-17:40", "Дисциплина": "Математический анализ 2", "Вид": "Семинар", "Группа": "241", "Преподаватель": "Мажуга А.М.", "Ссылка": "https://zoom.us/j/95774172150?pwd=eXgbrru0tCVVJS62XJrsPXXe7a9QVZ.1"}
+        ];
+
+        const ORDER = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+
+        let state = {
+            activeTab: null,
+            now: new Date()
+        };
+
+        function parseTime(t) {
+            const [h, m] = t.split(':').map(Number);
+            return h * 60 + m;
+        }
+
+        function getTagsHTML(item) {
+            let html = `<span class="tag tag-type">${item['Вид']}</span>`;
+            
+            const isLecture = item['Вид'].toLowerCase().includes('лекция');
+            const isEnglish = item['Дисциплина'].toLowerCase().includes('английский');
+            const group = item['Группа'] || item['Группа/ауд.'];
+
+            if (!isLecture && !isEnglish && group) {
+                html += `<span class="tag tag-group">${group}</span>`;
+            }
+            if (item['Преподаватель']) {
+                html += `<span class="tag">${item['Преподаватель']}</span>`;
+            }
+            return html;
+        }
+
+        function findNextEvent() {
+            const now = new Date();
+            const jsDay = now.getDay();
+            const curTime = now.getHours() * 60 + now.getMinutes();
+            
+            let dayOffset = (jsDay === 0) ? 6 : (jsDay - 1);
+            if (dayOffset < 0) dayOffset = 0;
+            
+            let nowGlobal = (dayOffset * 1440) + curTime;
+            let candidates = [];
+            
+            DATA.forEach(item => {
+                const dayIdx = ORDER.indexOf(item['День']);
+                if (dayIdx === -1) return;
+                
+                const [start, end] = item['Время'].split('-');
+                const sMins = parseTime(start.trim());
+                const eMins = parseTime(end.trim());
+                
+                let globalStart = (dayIdx * 1440) + sMins;
+                let globalEnd = (dayIdx * 1440) + eMins;
+                
+                let status = 'future';
+                let timeLeft = 0;
+                
+                if (globalEnd < nowGlobal) {
+                    globalStart += 10080; 
+                    globalEnd += 10080;
+                } else if (globalStart <= nowGlobal && globalEnd > nowGlobal) {
+                    status = 'live';
+                    timeLeft = globalEnd - nowGlobal;
+                }
+                
+                candidates.push({
+                    raw: item,
+                    start: globalStart,
+                    end: globalEnd,
+                    status: status,
+                    timeLeft: timeLeft
+                });
+            });
+            
+            candidates.sort((a, b) => a.start - b.start);
+            return candidates[0];
+        }
+
+        function renderSpotlight() {
+            const root = document.getElementById('hero-root');
+            const event = findNextEvent();
+            
+            if (!event) {
+                root.innerHTML = '<div class="empty-msg">Расписание пусто</div>';
+                return;
+            }
+
+            const item = event.raw;
+            const isLive = event.status === 'live';
+            const link = item['Ссылка'];
+            const hasLink = link && link.length > 5;
+            
+            let dateHTML = '';
+            if (isLive) {
+                dateHTML = `<span class="countdown-active">До конца: ${event.timeLeft} мин</span>`;
+            } else {
+                const nowDayIndex = (new Date().getDay() + 6) % 7; 
+                const evtDayIndex = ORDER.indexOf(item['День']);
+                
+                if (nowDayIndex === evtDayIndex) dateHTML = 'Сегодня';
+                else if ((nowDayIndex + 1) % 7 === evtDayIndex) dateHTML = 'Завтра';
+                else dateHTML = item['День'];
+            }
+            
+            root.innerHTML = `
+                <div class="hero-card ${isLive ? 'is-live' : ''}">
+                    <div class="hero-label">
+                        <span>${isLive ? 'Сейчас идет' : 'Далее'}</span>
+                        <span class="status-indicator ${isLive ? 'status-live' : 'status-next'}">
+                            ${isLive ? 'LIVE' : 'NEXT'}
+                        </span>
+                    </div>
+                    
+                    <div class="hero-time">${item['Время']}</div>
+                    <div class="hero-date">${dateHTML}</div>
+                    
+                    <div class="hero-title">${item['Дисциплина']}</div>
+                    
+                    <div class="tags">
+                        ${getTagsHTML(item)}
+                    </div>
+                    
+                    <a href="${hasLink ? link : '#'}" target="_blank" 
+                       class="btn ${isLive || hasLink ? 'btn-primary' : ''} ${!hasLink ? 'disabled' : ''}">
+                        ${hasLink ? 'Подключиться' : 'Нет ссылки'}
+                    </a>
+                </div>
+            `;
+            
+            if (!state.activeTab) {
+                state.activeTab = item['День'];
+                renderTabs();
+                renderList();
+            }
+        }
+
+        function renderTabs() {
+            const root = document.getElementById('tabs-root');
+            root.innerHTML = '';
+            
+            const days = [...new Set(DATA.map(i => i['День']))]
+                         .sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b));
+                         
+            days.forEach(day => {
+                const btn = document.createElement('button');
+                btn.className = `tab-btn ${day === state.activeTab ? 'active' : ''}`;
+                btn.textContent = day;
+                btn.onclick = () => {
+                    state.activeTab = day;
+                    renderTabs();
+                    renderList();
+                };
+                root.appendChild(btn);
+            });
+        }
+
+        function renderList() {
+            const root = document.getElementById('list-root');
+            root.innerHTML = '';
+            
+            const items = DATA.filter(i => i['День'] === state.activeTab);
+            items.sort((a, b) => parseTime(a['Время'].split('-')[0]) - parseTime(b['Время'].split('-')[0]));
+            
+            if (items.length === 0) {
+                root.innerHTML = '<div class="empty-msg">Пар нет</div>';
+                return;
+            }
+            
+            items.forEach((item) => {
+                const div = document.createElement('div');
+                div.className = 'item-card';
+                
+                const link = item['Ссылка'];
+                const hasLink = link && link.length > 5;
+                
+                div.innerHTML = `
+                    <div class="item-header">
+                        <span class="item-time">${item['Время']}</span>
+                        ${hasLink ? `<a href="${link}" target="_blank" class="item-link">ZOOM →</a>` : ''}
+                    </div>
+                    <div class="item-title">${item['Дисциплина']}</div>
+                    <div class="tags" style="margin-bottom:0">
+                        ${getTagsHTML(item)}
+                    </div>
+                `;
+                root.appendChild(div);
+            });
+        }
+
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').textContent = 
+                now.toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'});
+        }
+
+        // Init
+        updateClock();
+        renderSpotlight();
+        renderTabs();
+        renderList();
+        
+        setInterval(() => {
+            updateClock();
+            renderSpotlight();
+        }, 60000);
+
+    </script>
+</body>
+</html>
